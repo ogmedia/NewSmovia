@@ -1,0 +1,21 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "characters": {
+      ".indexOn": [
+        "parent_id"
+      ],
+      "$uid": {
+        ".read": true,
+        ".write": "$uid === auth.uid"
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": true,
+        ".write": "$uid === auth.uid"
+      }
+    }
+  }
+}
