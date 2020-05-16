@@ -1,7 +1,41 @@
 #new-smovia{
-	margin: 0;
+	margin: 0px;
+	padding: 0px;
 	width: 100%;
 	height: 100%;
 	background: url('../images/sky.jpg') no-repeat center center;
 	background-size: cover;
+}
+
+#smovia-console{
+	position: absolute;
+	bottom: 30px;
+	left: 30px;
+	height: 100px;
+	width: 300px;
+	color: #fff;
+	padding: 4px;
+	overflow-y: scroll;
+	font-family: 'Arial';
+	font-size: .5em;
+	background-color: rgba(0,0,0,.7);
+}
+
+.fa-volume-up {
+	color: '#fff';
+}
+
+#character-console{
+	text-align: right;
+	position: absolute;
+	top: 30px;
+	right: 30px;
+	height: 40px;
+	width: 160px;
+	color: #fff;
+	padding: 4px;
+	overflow-y: scroll;
+	font-family: 'Arial';
+	font-size: .8em;
+	background-color: rgba(0,0,0,.7);
 }

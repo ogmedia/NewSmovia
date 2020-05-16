@@ -1,6 +1,78 @@
 import _ from 'lodash';
+import firebase from "firebase/app";
+import "firebase/database"
+import "firebase/firestore"
 
-import SmoviaData from '../smovia-12e5a-export.json';
+import { Map, List, fromJS, merge, mergeDeep } from 'immutable';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBmVCT-EW-O8WwXRjxtoCHbuFI_AQxWIJ0",
+  authDomain: "smovia-12e5a.firebaseapp.com",
+  databaseURL: "https://smovia-12e5a.firebaseio.com",
+  projectId: "smovia-12e5a",
+  storageBucket: "smovia-12e5a.appspot.com",
+  messagingSenderId: "531785474727",
+  appId: "1:531785474727:web:992557aa319ca6cc62b182"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+// import SmoviaData from '../smovia-12e5a-export.json';
+const SmoviaData = {};
+const SmoviaCharacterDataRef = firebase.database().ref("characters");
+const ResourcesDataRef = firebase.firestore().collection("resources");
+
+const GameStore = {
+	CharactersState: Map(),
+	ResourcesState: Map(),
+};
+
+const setCharacterStateFromSnap = characterSnap => {
+	const character = characterSnap.val();
+	const key = characterSnap.key;
+	if (character) {
+		GameStore.CharactersState = mergeDeep(
+			GameStore.CharactersState, 
+			GameStore.CharactersState.set(key, character)
+		);
+	}
+	return true;
+}
+
+const bindToDB = () => {
+	SmoviaCharacterDataRef.on("child_changed",
+		setCharacterStateFromSnap,
+		e => {
+		console.log("ERROR:", e);
+	})
+	loadCharacters();
+	loadResources();
+};
+
+
+GameStore.setup = bindToDB;
+
+const loadCharacters = () => {
+	SmoviaCharacterDataRef.once("value")
+		.then(charsSnap => {
+			const charsVal = charsSnap.val();
+			GameStore.CharactersState = mergeDeep(GameStore.CharactersState, charsVal);
+		})
+};
+
+const loadResources = () => {
+	ResourcesDataRef.get()
+		.then(resSnap => {
+			const allRes = {};
+			resSnap.forEach(r => {
+				const res = r.data();
+				res.id = r.id;
+				allRes[res.id] = res;
+			});
+			console.log("Resources", allRes);
+			GameStore.ResourcesState = mergeDeep(GameStore.ResourcesState, allRes);
+		})
+};
 
 const loadData = () => {
 	console.log("Loading data...");
@@ -64,6 +136,7 @@ const loadData = () => {
 		return contParents;
 	};
 
+
 	const worlds = Object.keys(dataHolder.worlds || {}).map(wId => {
 		return { ...dataHolder.worlds[wId],world_id: wId, continents: worldContinents(wId) };
 	})
@@ -89,4 +162,4 @@ const loadData = () => {
 	}
 };
 
-export { loadData };
+export { GameStore, loadData };

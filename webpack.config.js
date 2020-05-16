@@ -35,6 +35,14 @@
         { 
           test: /\.jpg$/, 
           loader: "file-loader" 
+        },
+        { 
+          test: /\.mp3$/, 
+          loader: "file-loader",
+          options: {
+            name: '[name].[ext]',
+            outputPath: 'audio'
+          }
         }
       ]
     }

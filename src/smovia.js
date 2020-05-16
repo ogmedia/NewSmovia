@@ -1,142 +1,70 @@
 import _ from "lodash";
-import { Map, List, fromJS } from "immutable";
-import { loadData } from "./data";
+import { Map, List, fromJS, merge, mergeDeep } from "immutable";
+import { GameStore, loadData } from "./data";
+
+import logger from './logger';
 
 import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-const wD = loadData();
+import {  
+  createCharacterData,
+  createContinentMesh,
+  createWorld,
+  createCharacterMesh,
+  createResourceData,
+  createResourceMesh,
+} from "./functions";
 
-const worldsState = fromJS(wD.worldsState);
-const charactersState = fromJS(wD.charactersState);
+import { WORLD_SIZE } from "./config"
 
-console.log(worldsState);
-console.log(charactersState);
+const worldSquared = (WORLD_SIZE*WORLD_SIZE);
 
-const wState = worldsState.get(0);
-const WORLD_SIZE = 1;
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
-const createWorld = () => {};
-const createContinents = _scene => {
-	const conts = wState.get("continents");
-	const numberOfConts = conts.size;
-	console.log("number of continents", numberOfConts);
-  // chop top of sphere y >= .15 ; 3
-  // chop middle -.15 < y < .15  ; 5
-  // chop bottom of sphere y <= -.15 ; 2
-  
-  // top routine up to 3
-  // size limit each build = available - build width
-  // available width is 1/3 of total
-  // available height is .3
-  const topRoutine = _available => {
-  	const width = (_available / 3) * Math.random();
-  	const height = .2;
-  	return {width, height, yOffset: .45 };
-  };
-
-  // middle routine up to 5
-  // size limit each build = available - buildwidth
-  // available is 1/5 of total
-  // available height is .3
-  const middleRoutine = _available => {
-  	const width = (_available / 5) * Math.random();
-  	const height = .2;
-  	return {height, width, yOffset: 0 };
-  }
-  // 
-  // bottom routine up to 2
-  // size limit eadch build = available - build width
-  // available is 1/2 of total
-  // available height is .3
-  const bottomRoutine = _available => {
-  	const width = (_available / 2) * Math.random();
-  	const height = .2;
-  	return {height, width, yOffset: -.4 };
-  }
-
-  const mapToPosition = ({ xOffset, yOffset }, _available) => {
-  	console.log("Submitted offsets");
-  	console.log(xOffset);
-  	console.log(yOffset);
-  	console.log("available space", _available);
-  	// z2 = r2 - x2 - y2
-  	const worldSquared = (WORLD_SIZE*WORLD_SIZE);
-  	console.log("World squared:", worldSquared);
-  	const xSquared = (xOffset * xOffset);
-  	console.log("xSquared", xSquared);
-  	const ySquared = (yOffset * yOffset);
-  	console.log("ySquared:", ySquared);
-  	let zSqr = worldSquared - xSquared - ySquared;
-  	console.log('zSqr', zSqr);
-  	let zCoord = Math.sqrt(zSqr); //multiply negative?
-  	if (xOffset > Math.PI/2) {
-  		zCoord = -zCoord;
-  	}
-  	return { xOffset, yOffset, zCoord };
-  }
-
-  let stage = "top";
-  let available = Math.PI*.4;
-  let offsetTrack = 0;
-  const contMeshes = conts.map((c,i) => {
-
-  	if (i > 7 && stage !== "bottom") {
-  		stage = "bottom";
-  		available = Math.PI*.4;
-  		offsetTrack = 0;
-  	}
-  	if (i > 2 && stage !== "middle" && i <= 7 ) {
-  		stage = "middle";
-  		available = Math.PI;
-  		offsetTrack = 0;
-  	}
-  	let mDetail = null;
-  	console.log("Starting Stage", stage);
-  	switch (stage) {
-  		case "middle":
-				mDetail = middleRoutine(available);
-  			break;
-  		case "bottom":
-				mDetail = bottomRoutine(available);
-  			break;
-  		case "top":
-  			mDetail = topRoutine(available);
-  			break;
-  	}
-  	mDetail.xOffset = offsetTrack;
-		// console.log('available', available);
-		// console.log(mDetail);
-  	// console.log("continent in state", c.toObject());
-  	const ng = new THREE.BoxGeometry(mDetail.width,.08,mDetail.height);
-  	const nm = new THREE.MeshPhongMaterial({ color: 0x005500});
-
-  	const contMesh = new THREE.Mesh(ng, nm);
-  	let { xOffset, yOffset, zCoord } = mapToPosition(mDetail, available);
-  	console.log('xOffset', xOffset);
-  	console.log('yOffset', yOffset);
-  	console.log('zCoord', zCoord);
-  	const quat = new THREE.Quaternion();// new THREE.Quaternion(xOffset, yOffset, zCoord, 1);
-  // 	contMesh.applyQuaternion(quat);
-  // 	contMesh.quaternion.normalize();
-    contMesh.rotateX(90*Math.PI/180);//(xOffset);
-    // contMesh.rotateY(yOffset);
-  	contMesh.position.set(xOffset, yOffset, zCoord);
-  	offsetTrack += mDetail.width;
-    return contMesh;
-  });
-
-  contMeshes.forEach((m,i) => {
-  	// m.position.y = (.3*i);
-  	_scene.add(m);
-  });
+// create a character
+const createCharacter = (_character, _scene) => {
+    const mapChar = _character;
+    const { x, y, z } = createCharacterData(mapChar.position || { lat: mapChar.lat, lon: mapChar.lon });
+    const c = {...mapChar, x, y, z };
+    c.mesh = createCharacterMesh();
+    c.mesh.callback = () => { 
+      document.getElementById('character-console').innerHTML = `${c.first_name} ${c.last_name}`;
+    };
+    return c;
 };
 
+// create a resource
+const createResource = (_resource, _scene) => {
+    const mapRes = _resource;
+    const { x, y, z } = createResourceData(mapRes.position);
+    const c = {...mapRes, x, y, z };
+    c.mesh = createResourceMesh();
+    c.mesh.callback = () => { console.log("clicked on a resource") };
+    return c;
+};
+
+const scene = new THREE.Scene();
 const start =  () => {
 	console.log("START!");
+  GameStore.setup()
+
+  const onDocumentMouseDown = event => {
+    event.preventDefault();
+    mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
+
+    raycaster.setFromCamera( mouse, camera );
+    var intersects = raycaster.intersectObjects( scene.children ); 
+    if ( intersects.length > 0 ) {
+        intersects[0].object.callback();
+    }
+  }
+  window.addEventListener('click', onDocumentMouseDown, false);
+
   let container = document.getElementById('new-smovia');
 
-	var scene = new THREE.Scene();
 	var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
 	var renderer = new THREE.WebGLRenderer({
@@ -147,15 +75,15 @@ const start =  () => {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	container.appendChild(renderer.domElement);
 
-	var geometry = new THREE.SphereBufferGeometry(WORLD_SIZE, 24, 24);
-	var material = new THREE.MeshPhongMaterial({ color: 0x117799 });
-	var sphere = new THREE.Mesh( geometry, material );
-	scene.add( sphere );
+	var theWorld = createWorld();
+  theWorld.callback = () => { console.log("clicked on the world") };
+	scene.add( theWorld );
 
-	camera.position.z = 2;	
+	camera.position.z = 1.2;
+  camera.position.x = 1.2;	
 
 	var spotLight = new THREE.SpotLight(0xffffff, 1.5);
-	spotLight.position.set( 500, 50, 500 );
+	spotLight.position.set( 800, 10, 800 );
 
 	spotLight.castShadow = true;
 
@@ -168,21 +96,158 @@ const start =  () => {
 
 	scene.add( spotLight );
 
-	createContinents(scene);
-
   const controls = new OrbitControls( camera, renderer.domElement );
   controls.update();
 
 	function animate() {
 		requestAnimationFrame( animate );
-		// sphere.rotation.y += 0.005;
-		
+    theWorld.rotation.y += .0002;
+    gameLoop();
 		controls.update();
 		renderer.render( scene, camera );
 	}
 
-	console.log("World state", wState.toObject());
 	console.log("Start animate");
 	animate();
 }
+
+const gameLoop = () => {
+    // render characters
+    const nC = checkCharMesh();
+    const mM = moveMeshes();
+    GameStore.CharactersState = mergeDeep(nC, mM);
+
+    // render resources
+    const nR = checkResourceMesh();
+    const mR = moveResources();
+    GameStore.ResourcesState = mergeDeep(nR, mR);
+};
+
+const checkCharMesh = () => {
+  const missingMeshes = GameStore.CharactersState.filter(c => {
+    return (!c.mesh);
+  });
+  // console.log("found missing characters", missingMeshes.size);
+  return missingMeshes.map(c => {
+    const newChar = createCharacter(c,scene);
+    newChar.mesh.position.set(newChar.x, newChar.y, newChar.z);
+    scene.add(newChar.mesh);
+    logger(`${c.first_name} ${c.last_name} has been created.`);
+
+    return newChar;
+  });
+};
+
+const checkResourceMesh = () => {
+  const missingMeshes = GameStore.ResourcesState.filter(c => {
+    return (!c.mesh);
+  });
+  return missingMeshes.map(c => {
+    const newRes = createResource(c, scene);
+    newRes.mesh.position.set(newRes.x, newRes.y, newRes.z);
+    scene.add(newRes.mesh);
+    logger(`Resource: ${c.id} has been created.`);
+
+    return newRes;
+  });
+};
+
+const moveMeshes = () => {
+  const meshesToMove = GameStore.CharactersState.filter(c => {
+    return (!c.mesh === false)
+  });
+
+  return meshesToMove.map(c => {
+    if (c.mesh) {
+      // console.log("has a mesh!", c.mesh);
+      const { x, y, z } = createCharacterData(c.position || { lat: c.lat, lon: c.lon });
+      // if our supposed position is not accurate and not moving
+      if (
+        (
+          c.mesh.position.x !== x ||
+          c.mesh.position.y !== y ||
+          c.mesh.position.z !== z 
+        ) &&
+        c.moving !== true
+      ){
+          // console.log(c.id + ' isnt moving');
+          c.moving = true;
+          GameStore.CharactersState =  GameStore.CharactersState.set(c.id,c);
+          moveCharacter(c, { x, y, z });
+      } else {
+        // console.log("already moving...",c.moving);
+      }
+
+    } else {
+        console.log("does NOT have a mesh");
+    }
+    return c;
+  });
+};
+
+const moveResources = () => {
+  const meshesToMove = GameStore.ResourcesState.filter(c => {
+    return (!c.mesh === false)
+  });
+
+  return meshesToMove.map(c => {
+    if (c.mesh) {
+      // console.log("has a mesh!", c.mesh);
+      const { x, y, z } = createResourceData(c.position);
+      if (
+        c.mesh.position.x !== x ||
+        c.mesh.position.y !== y ||
+        c.mesh.position.z !== z
+      ){
+        c.mesh.position.set(x, y, z);
+        logger(`resource has moved.`);
+      }
+
+      c.mesh.rotation.y += .01;
+      c.mesh.rotation.x += .01;
+    } else {
+        console.log("resource does NOT have a mesh");
+    }
+    return c;
+  });
+};
+
+const moveCharacter = (_character, { x, y, z}) => {
+  const { position } = _character.mesh;
+  let increment = {
+    x: (x - position.x) / 40,
+    y: (y - position.y) / 40,
+    z: (z - position.z) / 40,
+  };
+  logger(`${_character.first_name} ${_character.last_name} is moving`);
+  const moving = setInterval(() => {
+    if (
+      (Math.round(position.x * 1000) / 1000 === Math.round(x * 1000) / 1000) ||
+      (Math.round(position.y * 1000) / 1000 === Math.round(y * 1000) / 1000) ||
+      (Math.round(position.z * 1000) / 1000 === Math.round(z * 1000) / 1000)
+    ){
+      // logger(`${_character.first_name} ${_character.last_name} finished moving`);
+      _character.mesh.position.set(x, y, z);
+      clearInterval(moving);
+      _character.moving = false;
+      GameStore.CharactersState =  GameStore.CharactersState.set(_character.id, _character);
+
+    } else {
+
+      const newX = position.x += increment.x;
+      const newY = position.y += increment.y;
+      const newZ = position.z += increment.z;
+
+      // console.log(`${_character.first_name} ${_character.last_name} has moved to ${newX} ${newY} ${newZ}`);
+      // console.log(`target is ${x} ${y} ${z}`)
+      _character.mesh.position.set(newX, newY, newZ);
+      _character.mesh.rotation.y += .2;
+      _character.mesh.rotation.x += .2;
+    }
+
+  }, 100);
+
+  return moving;
+};
+
 export default start;
