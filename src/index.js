@@ -3,7 +3,6 @@ import './styles/smovia.css';
 import './audio/SmoviaTheme.mp3';
 
 import '@fortawesome/fontawesome-free/js/fontawesome';
-import '@fortawesome/fontawesome-free/js/solid';
 import '@fortawesome/fontawesome-free/js/regular';
 
 let audioOn = false;

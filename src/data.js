@@ -1,9 +1,8 @@
-import _ from 'lodash';
 import firebase from "firebase/app";
 import "firebase/database"
 import "firebase/firestore"
 
-import { Map, List, fromJS, merge, mergeDeep } from 'immutable';
+import { Map, List, fromJS, merge, mergeDeep } from "immutable";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBmVCT-EW-O8WwXRjxtoCHbuFI_AQxWIJ0",
@@ -17,7 +16,6 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-// import SmoviaData from '../smovia-12e5a-export.json';
 const SmoviaData = {};
 const SmoviaCharacterDataRef = firebase.database().ref("characters");
 const ResourcesDataRef = firebase.firestore().collection("resources");

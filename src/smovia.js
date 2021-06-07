@@ -1,10 +1,17 @@
-import _ from "lodash";
 import { Map, List, fromJS, merge, mergeDeep } from "immutable";
 import { GameStore, loadData } from "./data";
 
 import logger from './logger';
 
-import * as THREE from "three";
+import { 
+  Scene,
+  Raycaster,
+  Vector2,
+  PerspectiveCamera,
+  WebGLRenderer,
+  SpotLight
+} from "three";
+
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 import {  
@@ -20,8 +27,8 @@ import { WORLD_SIZE } from "./config"
 
 const worldSquared = (WORLD_SIZE*WORLD_SIZE);
 
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+const raycaster = new Raycaster();
+const mouse = new Vector2();
 
 // create a character
 const createCharacter = (_character, _scene) => {
@@ -45,7 +52,7 @@ const createResource = (_resource, _scene) => {
     return c;
 };
 
-const scene = new THREE.Scene();
+const scene = new Scene();
 const start =  () => {
 	console.log("START!");
   GameStore.setup()
@@ -65,9 +72,9 @@ const start =  () => {
 
   let container = document.getElementById('new-smovia');
 
-	var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+	var camera = new PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
-	var renderer = new THREE.WebGLRenderer({
+	var renderer = new WebGLRenderer({
 		container,
 		alpha: true,
 	});
@@ -82,7 +89,7 @@ const start =  () => {
 	camera.position.z = 1.2;
   camera.position.x = 1.2;	
 
-	var spotLight = new THREE.SpotLight(0xffffff, 1.5);
+	var spotLight = new SpotLight(0xffffff, 1.5);
 	spotLight.position.set( 800, 10, 800 );
 
 	spotLight.castShadow = true;

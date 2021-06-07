@@ -1,5 +1,3 @@
-import moment from 'moment';
-
 const logger = (msg) => {
 	const hudMessage = document.createElement('div');
   hudMessage.innerHTML = msg;

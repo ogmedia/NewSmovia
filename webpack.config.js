@@ -1,21 +1,39 @@
- const path = require('path');
-  const HtmlWebpackPlugin = require('html-webpack-plugin');
-  const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+const TerserPlugin = require('terser-webpack-plugin');
+const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
 
   module.exports = {
-    mode: 'development',
+    mode: "production",
     entry: {
-      app: './src/index.js',
+      app: {
+        import: "./src/index.js",
+        dependOn: "vendors",
+      },
+      vendors: [
+        "firebase/app",
+        "firebase/database",
+        "firebase/firestore",
+        "three",
+        "immutable",
+        "moment",
+        '@fortawesome/fontawesome-free/js/fontawesome',
+        '@fortawesome/fontawesome-free/js/regular',        
+      ],
     },
     devtool: 'inline-source-map',
     devServer: {
       contentBase: './dist',
     },
     plugins: [
-      new CleanWebpackPlugin({ cleanStaleWebpackAssets: false }),
+      new CleanWebpackPlugin({ verbose: true }),
+      new MomentLocalesPlugin(),
       new HtmlWebpackPlugin({
         title: 'Development',
       }),
+      new BundleAnalyzerPlugin(),
     ],
     output: {
       filename: '[name].bundle.js',
@@ -24,7 +42,7 @@
     module: {
       rules: [
         {
-          test: /\.(js)$/,
+          test: /\.m?js$/,
           exclude: /node_modules/,
           use: ["babel-loader", "eslint-loader"]
         },
@@ -34,7 +52,11 @@
         },
         { 
           test: /\.jpg$/, 
-          loader: "file-loader" 
+          loader: "file-loader",
+          options: {
+            name: '[name].[ext]',
+            outputPath: 'img',
+          },
         },
         { 
           test: /\.mp3$/, 
@@ -45,5 +67,12 @@
           }
         }
       ]
-    }
+    },
+    optimization: {
+      splitChunks: {
+        chunks: "all",
+      },
+      minimize: true,
+      minimizer: [new TerserPlugin()],
+    },
   };
