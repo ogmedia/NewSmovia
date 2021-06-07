@@ -1,4 +1,5 @@
 # NewSmovia
+![New Smovia](https://github.com/ogmedia/NewSmovia/blob/main/newsmovia.png)
 ## About
 3D World populated by families w/lineage, resources, and more
 
