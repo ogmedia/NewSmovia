@@ -1,7 +1,5 @@
 {
   "rules": {
-    ".read": true,
-    ".write": true,
     "characters": {
       ".indexOn": [
         "parent_id"
